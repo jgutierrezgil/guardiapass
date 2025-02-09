@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil - GuardiaPass{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Estadísticas Generales -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Estadísticas Generales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <h6 class="text-muted">Total Contraseñas</h6>
+                            <h4>{{ passwords|length }}</h4>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h6 class="text-muted">Dominios Únicos</h6>
+                            <h4>{{ unique_domains }}</h4>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted">Última Actualización</h6>
+                            <p>{{ last_update.strftime('%d/%m/%Y') if last_update else 'Sin actualizaciones' }}</p>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted">Contraseñas Antiguas</h6>
+                            <p>{{ old_passwords }} (>90 días)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribución de Fortaleza -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>Fortaleza de Contraseñas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3" style="height: 25px;">
+                        <div class="progress-bar bg-danger" role="progressbar" 
+                             style="width: {{ weak_percent }}%" 
+                             title="Débiles: {{ weak_count }}">
+                            {{ weak_count }} Débiles
+                        </div>
+                        <div class="progress-bar bg-warning" role="progressbar" 
+                             style="width: {{ medium_percent }}%" 
+                             title="Medias: {{ medium_count }}">
+                            {{ medium_count }} Medias
+                        </div>
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ strong_percent }}%" 
+                             title="Fuertes: {{ strong_count }}">
+                            {{ strong_count }} Fuertes
+                        </div>
+                    </div>
+                    {% if weak_count > 0 %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Tienes {{ weak_count }} contraseña{{ 's' if weak_count != 1 }} débil{{ 'es' if weak_count != 1 }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actividad Reciente -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Actividad Reciente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_activities %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Sitio</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for activity in recent_activities %}
+                                <tr>
+                                    <td>{{ activity.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                                    <td>{{ activity.site }}</td>
+                                    <td><span class="badge bg-success">{{ activity.action }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No hay actividad reciente</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contraseñas Antiguas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clock me-2"></i>Contraseñas Antiguas (>90 días)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if old_passwords > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Sitio</th>
+                                    <th>Última Actualización</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pwd in passwords %}
+                                {% if (now() - pwd.created_at.replace(tzinfo=timezone.utc)).days > 90 %}
+                                <tr>
+                                    <td>{{ pwd.name }}</td>
+                                    <td>{{ pwd.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="generatePassword({{ pwd.id }})"
+                                                title="Generar nueva contraseña">
+                                            <i class="fas fa-dice"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success"
+                                                onclick="updatePassword({{ pwd.id }})"
+                                                title="Actualizar contraseña">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No hay contraseñas antiguas</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function generatePassword(passwordId) {
+    fetch('/api/generate-password')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Contraseña generada', 'Usa el botón de actualizar para guardar la nueva contraseña', 'success');
+                // Guardar la contraseña generada en una variable global para usarla en updatePassword
+                window.generatedPassword = data.password;
+            }
+        });
+}
+
+function updatePassword(passwordId) {
+    const password = window.generatedPassword;
+    if (!password) {
+        showNotification('Error', 'Primero genera una nueva contraseña', 'error');
+        return;
+    }
+
+    fetch(`/api/passwords/${passwordId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Éxito', 'Contraseña actualizada correctamente', 'success');
+            // Limpiar la contraseña generada y recargar la página
+            window.generatedPassword = null;
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

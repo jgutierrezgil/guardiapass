@@ -2,8 +2,18 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_required, current_user
 from models.password import Password
 from utils.password_generator import PasswordGenerator
+from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 main = Blueprint('main', __name__)
+
+# Añadir función now() al contexto de la plantilla
+@main.context_processor
+def utility_processor():
+    return dict(
+        now=lambda: datetime.now(timezone.utc),
+        timezone=timezone
+    )
 
 @main.route('/')
 def index():
@@ -23,76 +33,66 @@ def dashboard():
 def manage():
     return render_template('manage.html')
 
-@main.route('/passwords', methods=['GET', 'POST'])
+@main.route('/profile')
 @login_required
-def passwords():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        url = request.form.get('url')
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        # Validar datos
-        if not all([name, username, password]):
-            flash('Todos los campos marcados son obligatorios.', 'error')
-            return redirect(url_for('main.passwords'))
-            
-        # Crear nueva contraseña
-        new_password = Password.create(
-            user_id=current_user.id,
-            name=name,
-            url=url,
-            username=username,
-            password=password,
-            master_key=session.get('master_key')
-        )
-        
-        if new_password:
-            flash('Contraseña guardada exitosamente.', 'success')
-        else:
-            flash('Error al guardar la contraseña.', 'error')
-            
-        return redirect(url_for('main.passwords'))
-        
-    # GET: Mostrar lista de contraseñas
-    search = request.args.get('search', '')
-    if search:
-        passwords = Password.search_by_name(current_user.id, search)
-    else:
-        passwords = Password.get_all_for_user(current_user.id)
-        
-    return render_template('passwords.html', passwords=passwords, search=search)
-
-@main.route('/passwords/<int:password_id>', methods=['GET', 'PUT', 'DELETE'])
-@login_required
-def password(password_id):
-    password_entry = Password.get(password_id, current_user.id, session.get('master_key'))
+def profile():
+    # Obtener todas las contraseñas del usuario
+    passwords = Password.get_all_for_user(current_user.id)
     
-    if not password_entry:
-        return jsonify({'error': 'Contraseña no encontrada'}), 404
+    # Estadísticas básicas
+    last_update = passwords[0].created_at if passwords else None
+    
+    # Obtener dominios únicos (extraer dominio de las URLs)
+    unique_domains = len(set(urlparse(p.url).netloc for p in passwords if p.url))
+    
+    # Contraseñas antiguas (>90 días)
+    old_passwords = sum(1 for p in passwords if (datetime.utcnow() - p.created_at).days > 90)
+    
+    # Actividad reciente (últimas 5 contraseñas)
+    recent_activities = [
+        {'date': p.created_at, 'site': p.name, 'action': 'Creada'}
+        for p in sorted(passwords, key=lambda x: x.created_at, reverse=True)[:5]
+    ]
+    
+    # Calcular estadísticas de fortaleza usando el generador existente
+    password_generator = PasswordGenerator()
+    weak_count = medium_count = strong_count = 0
+    
+    for pwd in passwords:
+        # Obtener contraseña descifrada usando to_dict
+        pwd_data = pwd.to_dict(include_password=True, master_key=session.get('master_key'))
+        if not pwd_data.get('password'):
+            continue
+            
+        is_valid, _ = password_generator.validate_password(pwd_data['password'])
+        strength = len(pwd_data['password']) + sum(1 for c in pwd_data['password'] if c.isupper()) + \
+                  sum(1 for c in pwd_data['password'] if c.isdigit()) + \
+                  sum(1 for c in pwd_data['password'] if not c.isalnum())
         
-    if request.method == 'GET':
-        return jsonify(password_entry.to_dict(
-            include_password=True,
-            master_key=session.get('master_key')
-        ))
-        
-    elif request.method == 'PUT':
-        data = request.get_json()
-        success = password_entry.update(
-            name=data.get('name'),
-            url=data.get('url'),
-            username=data.get('username'),
-            password=data.get('password'),
-            master_key=session.get('master_key')
-        )
-        
-        if success:
-            return jsonify({'message': 'Contraseña actualizada exitosamente'})
-        return jsonify({'error': 'Error al actualizar la contraseña'}), 400
-        
-    elif request.method == 'DELETE':
-        if password_entry.delete():
-            return jsonify({'message': 'Contraseña eliminada exitosamente'})
-        return jsonify({'error': 'Error al eliminar la contraseña'}), 400
-
+        if strength < 10:
+            weak_count += 1
+        elif strength < 15:
+            medium_count += 1
+        else:
+            strong_count += 1
+    
+    total = len(passwords)
+    if total > 0:
+        weak_percent = (weak_count / total) * 100
+        medium_percent = (medium_count / total) * 100
+        strong_percent = (strong_count / total) * 100
+    else:
+        weak_percent = medium_percent = strong_percent = 0
+    
+    return render_template('profile.html',
+                         passwords=passwords,
+                         last_update=last_update,
+                         unique_domains=unique_domains,
+                         old_passwords=old_passwords,
+                         recent_activities=recent_activities,
+                         weak_count=weak_count,
+                         medium_count=medium_count,
+                         strong_count=strong_count,
+                         weak_percent=weak_percent,
+                         medium_percent=medium_percent,
+                         strong_percent=strong_percent)
