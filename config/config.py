@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    # Configuración básica
+    SECRET_KEY = os.getenv('SECRET_KEY') or 'dev-key-change-in-production'
     
     # Configuración de la base de datos
     DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'passwords.db')
