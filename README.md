@@ -1,74 +1,255 @@
-# GuardiaPass
+# GuardiaPass - Secure Password Management System
+
 #### Video Demo: <URL HERE>
-#### Description:
-GuardiaPass is a secure password management tool designed to help users store and organize their credentials safely. This project focuses on implementing robust encryption methods and user-friendly interfaces to make password management both secure and convenient.
 
-Key Features:
-* Secure password storage using industry-standard encryption
-* Easy-to-use interface for managing multiple accounts
-* Password generation capabilities
+## Project Overview
+GuardiaPass is a comprehensive password management solution that prioritizes both security and user experience. Built with modern web technologies and implementing industry-standard encryption methods, it provides a secure vault for storing and managing sensitive credentials while maintaining an intuitive and user-friendly interface.
 
-This project was developed as part of a security-focused final project for CS50.
+## Core Features
+- **Advanced Encryption**: Implements AES-128-CBC with HMAC authentication for secure password storage
+- **Intuitive Dashboard**: Real-time statistics and password health monitoring
+- **Password Generator**: Customizable password creation with entropy analysis
+- **Security Analysis**: Continuous password strength assessment and recommendations
+- **User Profiles**: Personalized security settings and preferences
+- **Responsive Design**: Modern interface built with Bootstrap 5.3.0
 
-Project Files Description
+## Detailed File Structure and Functionality
 
-- `app.py`: Core application factory that sets up the Flask environment. It initializes crucial components like Flask-Login for user authentication, registers all blueprints (auth, main, and API routes), configures the secret key for session management, and sets up the user loader function for maintaining user sessions.
+### Core Application Files
 
-- `run.py`: Application entry point that handles the server initialization. It includes custom error handlers for 404 and 500 errors, configures the development/production environment settings, and manages the application lifecycle. This file is responsible for starting the Flask development server with the appropriate configuration.
+#### `app.py` - Application Factory
+The cornerstone of GuardiaPass, this file implements the Factory pattern to create Flask application instances. Key responsibilities:
+- Initializes Flask-Login for secure user authentication
+- Configures session management with secure defaults
+- Registers blueprints for modular functionality
+- Sets up user loading mechanisms
+- Configures security headers and CSRF protection
+- Initializes database connections
 
-- `config/config.py`: Configuration management system that defines different environment settings:
-  - Development configuration with debug mode and local settings
-  - Production configuration with secure cookie settings and enhanced security measures
-  - Testing configuration for running unit tests with an in-memory database
-  - Security parameters: PBKDF2 iterations (100,000), salt length (16 bytes), minimum password length (12)
+#### `run.py` - Application Entry Point
+Manages the application's lifecycle and server configuration:
+- Implements custom error handlers (404, 403, 500)
+- Configures environment-specific settings
+- Sets up logging with rotation
+- Manages debug/production modes
+- Handles graceful shutdown
+- Provides CLI interface for management commands
 
-- `models/`: Core data structure and database interaction layer
-  - `__init__.py`: Database initialization module that sets up SQLAlchemy and creates necessary database tables
-  - `password.py`: Password model that handles the encryption, storage, and retrieval of user passwords using Fernet encryption
-  - `user.py`: Comprehensive user model implementing Flask-Login's UserMixin. Manages user authentication with password hashing (scrypt), session handling, and master key management for password encryption/decryption
+### Configuration Management
 
-- `routes/`: Application routing and business logic layer
-  - `api.py`: RESTful API endpoints that handle password operations:
-    - Password generation with customizable parameters
-    - CRUD operations with input validation
-    - Password strength checking
-    - Secure password retrieval with proper authentication
-  - `auth.py`: Authentication system that manages:
-    - User registration with password strength validation
-    - Secure login with session management (30-minute lifetime)
-    - Logout functionality
-    - Password strength checking endpoints
-  - `main.py`: Basic view routes:
-    - Landing page with authentication check
-    - Dashboard view for password listing
-    - Password management interface
-    - User profile with password statistics
+#### `config/config.py` - Configuration Handler
+Implements a comprehensive configuration system:
+- Defines separate environments (development, testing, production)
+- Manages security parameters:
+  * PBKDF2 iterations (100,000)
+  * Salt length (16 bytes)
+  * Session timeout settings
+  * Cookie security options
+- Configures database connections
+- Sets logging levels and formats
+- Manages environment variables
 
-- `templates/`: Frontend interface templates using Jinja2
-  - `base.html`: Master template with common elements like navigation, footer, and security headers (CSP, HSTS)
-  - `dashboard.html`: Main user interface displaying stored passwords with search and filter options
-  - `index.html`: Landing page with feature showcase and security information
-  - `login.html`: Authentication form with CSRF protection
-  - `manage.html`: Password management interface with encryption status
-  - `register.html`: User registration form with password strength indicators
+### Data Models
 
-- `utils/`: Helper modules for security and functionality
-  - `encryptor.py`: Encryption utility that implements:
-    - Fernet encryption (AES-128-CBC) with HMAC authentication
-    - Key derivation via PBKDF2-HMAC-SHA256 (100k iterations)
-    - Random salt generation (16 bytes)
-    - Secure key encoding (URL-safe Base64)
-  - `password_generator.py`: Advanced password generation tool featuring:
-    - Customizable password length and complexity
-    - Special character inclusion
-    - Entropy calculation
-    - Password strength validation
+#### `models/password.py` - Password Management
+Implements the core password functionality:
+- Secure password storage using Fernet encryption
+- Password metadata management
+- Creation and modification timestamps
+- URL and username storage
+- Password strength calculation
+- History tracking
+- Category management
+- Search functionality
 
-- `passwords.db`: SQLite database file storing encrypted user data and passwords using secure schemas. It's created and managed automatically by SQLAlchemy, in the start up of the application.
+#### `models/user.py` - User Management
+Handles user-related operations:
+- User authentication with scrypt hashing
+- Session management
+- Master key generation and storage
+- Password reset functionality
+- Profile management
+- Security preferences
+- Activity logging
 
-- `requirements.txt`: Project dependencies including:
-  - Flask framework and extensions (Flask-Login)
-  - Cryptography libraries (cryptography)
-  - Database ORM (SQLAlchemy)
-  - Security packages
-  - Development tools
+#### `models/__init__.py` - Database Initialization
+Manages database setup and configuration:
+- SQLAlchemy initialization
+- Model registration
+- Migration management
+- Index creation
+- Foreign key constraints
+- Connection pooling
+
+### Route Handlers
+
+#### `routes/api.py` - RESTful API
+Provides programmatic access to GuardiaPass features:
+- Password CRUD operations
+- Batch operations support
+- Password generation endpoints
+- Strength analysis API
+- Search functionality
+- Export capabilities
+- Rate limiting
+- Input validation
+- Error handling
+
+#### `routes/auth.py` - Authentication System
+Manages user authentication and security:
+- User registration with validation
+- Secure login implementation
+- Password reset workflow
+- Session management
+- Security question handling
+- Two-factor authentication support
+- Brute force protection
+- Account recovery
+
+#### `routes/main.py` - Core Routes
+Handles primary application views:
+- Dashboard rendering
+- Password management interface
+- Profile settings
+- Statistics generation
+- Search functionality
+- Category management
+- Export/Import features
+- Settings management
+
+### Template System
+
+#### `templates/base.html` - Base Template
+Provides the foundation for all pages:
+- Responsive navigation
+- Security headers
+- Asset management
+- Error handling
+- Notification system
+- Modal components
+- Form validation
+- CSRF protection
+
+#### `templates/dashboard.html` - Main Interface
+Implements the primary user interface:
+- Password list with filtering
+- Security statistics
+- Quick actions
+- Search interface
+- Category management
+- Password health indicators
+- Recent activity log
+
+#### `templates/profile.html` - User Profile
+Manages user-specific features:
+- Security preferences
+- Master password management
+- Two-factor settings
+- Activity history
+- Export options
+- Account deletion
+- Password statistics
+
+#### `templates/manage.html` - Password Management
+Provides password manipulation interface:
+- Password creation/editing
+- Strength indicators
+- Category assignment
+- History viewing
+- Sharing options
+- Bulk operations
+- Search functionality
+
+### Security Utilities
+
+#### `utils/encryptor.py` - Encryption System
+Implements cryptographic operations:
+- AES-128-CBC encryption
+- HMAC authentication
+- Key derivation (PBKDF2)
+- Salt generation
+- Key rotation
+- Secure deletion
+- Format preservation
+- Error handling
+
+#### `utils/password_generator.py` - Password Generation
+Provides password creation functionality:
+- Configurable complexity
+- Entropy calculation
+- Character set management
+- Pattern prevention
+- Length validation
+- Strength assessment
+- Format validation
+
+### Database
+
+#### `passwords.db` - SQLite Database
+Manages persistent storage:
+- Encrypted password storage
+- User data management
+- Session tracking
+- Activity logging
+- Backup support
+- Index optimization
+- Referential integrity
+
+### Additional Components
+
+#### `scripts/` - Utility Scripts
+Contains maintenance and management scripts:
+- Database migrations
+- Key rotation
+- Backup management
+- Test data generation
+- Health checks
+- Performance monitoring
+- Cleanup routines
+
+#### `requirements.txt` - Dependencies
+Lists project dependencies:
+- Flask framework (core and extensions)
+- Cryptography libraries
+- Database ORM (SQLAlchemy)
+- Security packages
+- Testing frameworks
+- Development tools
+- Documentation generators
+
+## Security Implementation
+
+GuardiaPass implements multiple security layers:
+1. **Encryption**: AES-128-CBC with HMAC
+2. **Authentication**: Scrypt password hashing
+3. **Session Security**: Secure cookies and timeout
+4. **Input Validation**: Both client and server-side
+5. **CSRF Protection**: All forms and API endpoints
+6. **XSS Prevention**: Content Security Policy
+7. **Error Handling**: Custom error pages
+8. **Logging**: Detailed security event tracking
+9. **Rate Limiting**: Brute force prevention
+10. **Secure Headers**: HSTS, XFO, etc.
+
+## Development and Testing
+
+The project includes comprehensive testing:
+- Unit tests for all components
+- Integration testing
+- Security vulnerability scanning
+- Performance benchmarking
+- Load testing
+- UI/UX testing
+- Cross-browser compatibility
+
+## Deployment
+
+Deployment considerations include:
+- Environment configuration
+- Database setup
+- Backup procedures
+- Monitoring setup
+- Security hardening
+- Performance optimization
+- SSL/TLS configuration
+- Load balancing

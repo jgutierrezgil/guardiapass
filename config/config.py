@@ -44,6 +44,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'  # Usar base de datos en memoria para tests
 
+# En el caso de que pasara a producción o hubiera diversas fases.
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,

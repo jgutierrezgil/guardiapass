@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from dotenv import load_dotenv
 from config.config import config
 from flask_login import LoginManager
@@ -68,11 +68,23 @@ def load_user(user_id):
 def register_error_handlers(app):
     @app.errorhandler(404)
     def not_found_error(error):
+        app.logger.info(f'Page not found: {request.url}')
         return render_template('errors/404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):
+        app.logger.error(f'Server Error: {error}')
         return render_template('errors/500.html'), 500
+        
+    @app.errorhandler(403)
+    def forbidden_error(error):
+        app.logger.info(f'Forbidden access: {request.url}')
+        return render_template('errors/404.html'), 403
+
+    @app.errorhandler(405)
+    def method_not_allowed_error(error):
+        app.logger.info(f'Method not allowed: {request.method} {request.url}')
+        return render_template('errors/404.html'), 405
 
 if __name__ == '__main__':
     app = create_app(os.getenv('FLASK_ENV') or 'default')
