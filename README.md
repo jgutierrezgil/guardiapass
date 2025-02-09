@@ -2,7 +2,7 @@
 
 #### Video Demo: <URL HERE>
 
-## Project Overview
+#### Description
 GuardiaPass is a comprehensive password management solution that prioritizes both security and user experience. Built with modern web technologies and implementing industry-standard encryption methods, it provides a secure vault for storing and managing sensitive credentials while maintaining an intuitive and user-friendly interface.
 
 ## Core Features
