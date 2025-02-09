@@ -1,6 +1,7 @@
 from . import db
 from datetime import datetime
 from utils.encryptor import PasswordEncryptor
+from datetime import timezone
 
 class Password(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,6 +59,7 @@ class Password(db.Model):
             if password is not None and master_key is not None:
                 encryptor = PasswordEncryptor(master_key.encode())
                 self.encrypted_password = encryptor.encrypt(password)
+                self.created_at = datetime.now(timezone.utc)  # Actualizar fecha al cambiar contraseña
             if comments is not None:
                 self.comments = comments
                 

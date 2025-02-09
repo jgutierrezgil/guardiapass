@@ -81,18 +81,36 @@ def update_password(password_id):
         if not password or password.user_id != current_user.id:
             return jsonify({'error': 'Contraseña no encontrada'}), 404
 
-        password.update(
+        # Obtener master_key de la sesión
+        master_key = session.get('master_key')
+        if not master_key:
+            return jsonify({'error': 'No se encontró la clave maestra'}), 401
+
+        success = password.update(
             name=data.get('name'),
             url=data.get('url'),
             username=data.get('username'),
             password=data.get('password'),
             comments=data.get('comments'),
-            master_key=current_user.master_key
+            master_key=master_key
         )
 
-        return jsonify(password.to_dict(include_password=True, master_key=current_user.master_key))
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': 'Error al actualizar la contraseña'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': 'Contraseña actualizada correctamente',
+            'password': password.to_dict(include_password=True, master_key=master_key)
+        })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @api.route('/passwords/<int:password_id>', methods=['DELETE'])
 @login_required
@@ -141,12 +159,16 @@ def generate_password():
         strength_info = generator.measure_strength(password)
         
         return jsonify({
+            'success': True,
             'password': password,
             'strength': strength_info
         })
     except Exception as e:
         print(f"Error al generar contraseña: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @api.route('/passwords/check-strength', methods=['POST'])
 @login_required

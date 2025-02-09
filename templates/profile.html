@@ -169,15 +169,37 @@
 {% block scripts %}
 <script>
 function generatePassword(passwordId) {
-    fetch('/api/generate-password')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showNotification('Contraseña generada', 'Usa el botón de actualizar para guardar la nueva contraseña', 'success');
-                // Guardar la contraseña generada en una variable global para usarla en updatePassword
-                window.generatedPassword = data.password;
-            }
-        });
+    fetch('/api/passwords/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            length: 16,
+            use_lower: true,
+            use_upper: true,
+            use_digits: true,
+            use_special: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const strengthInfo = data.strength ? `\nFortaleza: ${data.strength.score}/100` : '';
+            showNotification(
+                'Contraseña generada', 
+                `Se ha generado una nueva contraseña${strengthInfo}\nUsa el botón de actualizar para guardarla`, 
+                'success'
+            );
+            window.generatedPassword = data.password;
+        } else {
+            showNotification('Error', data.error || 'Error al generar la contraseña', 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Error', 'Error al conectar con el servidor', 'error');
+        console.error('Error:', error);
+    });
 }
 
 function updatePassword(passwordId) {
@@ -191,17 +213,31 @@ function updatePassword(passwordId) {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({ password: password })
+        body: JSON.stringify({
+            password: password
+        })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
-            showNotification('Éxito', 'Contraseña actualizada correctamente', 'success');
+            showNotification('Éxito', data.message || 'Contraseña actualizada correctamente', 'success');
             // Limpiar la contraseña generada y recargar la página
             window.generatedPassword = null;
-            location.reload();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            throw new Error(data.error || 'Error al actualizar la contraseña');
         }
+    })
+    .catch(error => {
+        showNotification('Error', error.message || 'Error al conectar con el servidor', 'error');
+        console.error('Error:', error);
     });
 }
 </script>
