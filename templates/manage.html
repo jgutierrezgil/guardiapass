@@ -258,13 +258,21 @@ function makeRowEditable(tr) {
         const fieldName = field.dataset.field;
         originalValues[fieldName] = field.textContent;
         
+        // El pequeño botón para generar una password
         if (fieldName === 'password') {
-            field.innerHTML = '<input type="password" class="form-control form-control-sm" value="">';
+            field.innerHTML = `
+                <div class="input-group">
+                    <input type="password" class="form-control form-control-sm" value="">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="generateAndSetPassword(this)">
+                        <i class="fas fa-key"></i>
+                    </button>
+                </div>`;
         } else {
             field.innerHTML = `<input type="text" class="form-control form-control-sm" value="${originalValues[fieldName]}">`;
         }
     });
     
+    // Visibilidad de los botones
     tr.querySelector('.edit-btn').style.display = 'none';
     tr.querySelector('.delete-btn').style.display = 'none';
     tr.querySelector('.save-btn').style.display = 'inline-block';
@@ -290,6 +298,7 @@ async function savePassword(tr) {
         updatedData[field] = input.value;
     });
     
+    // Actualizar la contraseña en la base de datos
     try {
         const response = await fetch(`/api/passwords/${id}`, {
             method: 'PUT',
@@ -326,6 +335,7 @@ function cancelEdit(tr, originalValues) {
 document.getElementById('confirmDelete').addEventListener('click', async function() {
     if (!passwordToDelete) return;
     
+    // Borra la contraseña de la base de datos
     try {
         const response = await fetch(`/api/passwords/${passwordToDelete}`, {
             method: 'DELETE'
@@ -431,6 +441,38 @@ async function generatePassword() {
         strengthElement.className = 'alert alert-danger';
         strengthElement.textContent = `Error: ${error.message}`;
     }
+}
+
+// Función para generar y establecer contraseña
+function generateAndSetPassword(btn) {
+    const input = btn.closest('.input-group').querySelector('input');
+    const options = {
+        length: 16,
+        use_lower: true,
+        use_upper: true,
+        use_digits: true,
+        use_special: false,
+        use_extended: false
+    };
+
+    fetch('/api/passwords/generate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(options)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.password) {
+            input.value = data.password;
+            input.type = 'text';
+            setTimeout(() => input.type = 'password', 3000); // Ocultar después de 3 segundos
+        } else {
+            throw new Error('No se recibió una contraseña válida');
+        }
+    })
+    .catch(error => console.error('Error generating password:', error));
 }
 </script>
 {% endblock %}

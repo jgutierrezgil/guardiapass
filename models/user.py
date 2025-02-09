@@ -62,7 +62,7 @@ class User(UserMixin, db.Model):
             'name': pw.name,
             'url': pw.url,
             'username': pw.username,
-            'password': encryptor.decrypt(pw.password),
+            'password': encryptor.decrypt(pw.password), # Desencriptar la contraseña
             'created_at': pw.created_at
         } for pw in self.passwords]
     

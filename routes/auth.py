@@ -84,42 +84,6 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('auth.login'))
 
-@auth.route('/profile', methods=['GET', 'POST'])
-@login_required
-def profile():
-    if request.method == 'POST':
-        # Cambio de contraseña
-        current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        
-        if not current_user.verify_password(current_password):
-            flash('La contraseña actual es incorrecta.', 'error')
-            return redirect(url_for('auth.profile'))
-            
-        if new_password != confirm_password:
-            flash('Las contraseñas nuevas no coinciden.', 'error')
-            return redirect(url_for('auth.profile'))
-            
-        # Validar fortaleza de la nueva contraseña
-        password_generator = PasswordGenerator()
-        is_valid, errors = password_generator.validate_password(new_password)
-        if not is_valid:
-            for error in errors:
-                flash(error, 'error')
-            return redirect(url_for('auth.profile'))
-            
-        # Actualizar contraseña
-        try:
-            current_user.update_password(new_password)
-            flash('Contraseña actualizada exitosamente.', 'success')
-            return redirect(url_for('auth.login'))
-        except Exception as e:
-            flash('Error al actualizar la contraseña.', 'error')
-            return redirect(url_for('auth.profile'))
-            
-    return render_template('profile.html')
-
 @auth.route('/check-password-strength', methods=['POST'])
 def check_password_strength():
     password = request.json.get('password', '')

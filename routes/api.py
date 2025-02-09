@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify, session
 from flask_login import login_required, current_user
 from models.password import Password
 from utils.password_generator import PasswordGenerator
-from utils.ai_handler import AIHandler
 
 api = Blueprint('api', __name__)
 
@@ -19,7 +18,7 @@ def get_passwords():
 @api.route('/passwords', methods=['POST'])
 @login_required
 def create_password():
-    """Endpoint para crear una nueva contraseña"""
+    """Endpoint para almacenar una nueva contraseña en la base de datos"""
     try:
         data = request.get_json()
         if not data:
@@ -164,113 +163,6 @@ def check_password_strength():
         strength_info = generator.measure_strength(password)
         
         return jsonify(strength_info)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@api.route('/ai/analyze', methods=['POST'])
-@login_required
-def analyze_passwords():
-    """Endpoint para analizar contraseñas con IA"""
-    try:
-        data = request.get_json()
-        api_key = data.get('api_key')
-        
-        if not api_key:
-            return jsonify({'error': 'Se requiere API key'}), 400
-            
-        ai_handler = AIHandler(api_key)
-        
-        # Obtener las contraseñas del usuario sin exponer las contraseñas reales
-        passwords = Password.get_all_for_user(current_user.id)
-        password_info = [
-            {
-                'name': p.name,
-                'url': p.url,
-                'username': p.username,
-                'created_at': p.created_at,
-                'strength': PasswordGenerator().measure_strength(
-                    p.get_decrypted_password(current_user.master_key)
-                )
-            }
-            for p in passwords
-        ]
-        
-        analysis = ai_handler.analyze_passwords(password_info)
-        return jsonify(analysis)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@api.route('/ai/suggest', methods=['POST'])
-@login_required
-def get_ai_suggestions():
-    """Endpoint para obtener sugerencias de la IA"""
-    try:
-        data = request.get_json()
-        api_key = data.get('api_key')
-        url = data.get('url')
-        context = data.get('context', {})
-        
-        if not api_key or not url:
-            return jsonify({'error': 'Se requieren API key y URL'}), 400
-            
-        ai_handler = AIHandler(api_key)
-        suggestions = ai_handler.get_password_suggestions(url, context)
-        
-        return jsonify(suggestions)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@api.route('/search', methods=['GET'])
-@login_required
-def search_passwords():
-    """Endpoint para buscar contraseñas"""
-    try:
-        query = request.args.get('q', '')
-        if not query:
-            return jsonify({'error': 'Se requiere un término de búsqueda'}), 400
-            
-        passwords = Password.search_by_name(current_user.id, query)
-        return jsonify([
-            p.to_dict(include_password=False)
-            for p in passwords
-        ])
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@api.route('/stats', methods=['GET'])
-@login_required
-def get_stats():
-    """Endpoint para obtener estadísticas de las contraseñas"""
-    try:
-        passwords = Password.get_all_for_user(current_user.id)
-        
-        # Análisis de fortaleza
-        strength_stats = {
-            'weak': 0,
-            'moderate': 0,
-            'strong': 0,
-            'very_strong': 0
-        }
-        
-        generator = PasswordGenerator()
-        for password in passwords:
-            decrypted = password.get_decrypted_password(current_user.master_key)
-            strength = generator.measure_strength(decrypted)
-            
-            if strength['score'] < 4:
-                strength_stats['weak'] += 1
-            elif strength['score'] < 6:
-                strength_stats['moderate'] += 1
-            elif strength['score'] < 8:
-                strength_stats['strong'] += 1
-            else:
-                strength_stats['very_strong'] += 1
-        
-        return jsonify({
-            'total_passwords': len(passwords),
-            'strength_distribution': strength_stats,
-            'needs_update': strength_stats['weak'] + strength_stats['moderate']
-        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
